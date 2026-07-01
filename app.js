@@ -2,7 +2,7 @@ const express = require("express");
 const morgan = require("morgan");
 const cors = require("cors");
 const dbConnection = require("./db/index");
-const Book = require("./models/book");
+const Models = require("./models/index");
 
 dbConnection.authenticate().then(() => console.log("DB connected")).catch(console.error)
 // TODO: Workshop Part 1: import your db connection from ./db once it's wired up.
@@ -25,6 +25,10 @@ let books = [
   { title: "The Alchemist", author: "Paulo Coelho", genre: "Fiction", available: true },
 ];
 
+let review = [
+  {Reviewer: "Test", Rating: 7}
+]
+
 let nextId = 6; // use this for any new book you create
 
 // routes --------------------------------------------
@@ -41,7 +45,7 @@ app.get("/", (request, response) => {
 // TODO: Workshop: swap `books` for the Book method that returns every row.
 app.get("/api/books", async (request, response, next) => {
   try {
-    const books = await Book.findAll();
+    const books = await Models.Book.findAll({include:Models.Review});
     response.json(books)
   } catch (error) {
     next(error);
@@ -54,7 +58,7 @@ app.get("/api/books", async (request, response, next) => {
 app.get("/api/books/:id", async (request, response, next) => {
   try {
     const id = Number(request.params.id); // request.params.id is always a string — Number() makes it comparable
-    const book = await Book.findByPk(id);
+    const book = await Models.Book.findByPk(id, {include:Models.Review});
 
     if (!book) {
       return response.sendStatus(404);
@@ -72,12 +76,31 @@ app.get("/api/books/:id", async (request, response, next) => {
 app.post("/api/books", async (request, response, next) => {
   try {
     const { title, author, genre } = request.body;
-    const newBook = await Book.create({title, author, genre, available: true});
+    const newBook = await Models.Book.create({title, author, genre, available: true});
     response.status(201).json(newBook);
   } catch (error) {
     next(error);
   }
 });
+
+app.post("/api/books/:bookId/reviews", async (req, res, next) => {
+  try {
+    const { reviewer, rating, comment } = req.body;
+    const { bookId } = req.params;
+
+    const newReview = await Models.Review.create({
+      reviewer,
+      rating,
+      comment,
+      bookId,
+    });
+
+    res.status(201).json(newReview);
+  } catch (error) {
+    next(error);
+  }
+});
+
 
 // Part 6: PATCH an existing book — only changes the fields that were sent
 // TODO: Workshop: find the book the same Sequelize way as the GET-one route above,
@@ -85,7 +108,7 @@ app.post("/api/books", async (request, response, next) => {
 app.patch("/api/books/:id", async (request, response, next) => {
   try {
     const id = Number(request.params.id);
-    const book = await Book.findByPk(id);
+    const book = await Models.Book.findByPk(id);
 
     if (!book) {
       return response.sendStatus(404);
@@ -133,7 +156,8 @@ async function startApp() {
   // TODO: Workshop Part 3: this is where your table gets created from the Book
   // model. Call the sync method on your db connection and await it — the
   // table must exist before app.listen lets any request in.
-   await dbConnection.sync()
+   await dbConnection.sync({force: true})
+   await Models.Book.bulkCreate(books)
   app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 }
 
