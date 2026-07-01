@@ -1,9 +1,10 @@
 {
   "name": "books_api",
   "version": "1.0.0",
-  "description": "",
+  "description": "Starter repo for **Assignment 10: Sequelize (ORM) — Books API + Database**.",
   "main": "index.js",
   "scripts": {
+    "dev": "nodemon app.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -17,5 +18,16 @@
     "pg": "^8.22.0",
     "pg-hstore": "^2.3.4",
     "sequelize": "^6.37.8"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/PrinceApocalyps/books-api-starter.git"
+  },
+  "bugs": {
+    "url": "https://github.com/PrinceApocalyps/books-api-starter/issues"
+  },
+  "homepage": "https://github.com/PrinceApocalyps/books-api-starter#readme",
+  "devDependencies": {
+    "nodemon": "^3.1.14"
   }
 }

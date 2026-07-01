@@ -1,12 +1,15 @@
 const express = require("express");
 const morgan = require("morgan");
 const cors = require("cors");
+const dbConnection = require("./db/index");
+const Book = require("./models/book");
 
+dbConnection.authenticate().then(() => console.log("DB connected")).catch(console.error)
 // TODO: Workshop Part 1: import your db connection from ./db once it's wired up.
 // TODO: Workshop Part 2: import your Book model from ./models/Book once it's defined.
 
 const app = express();
-const PORT = 8080;
+const PORT = 8000;
 
 // middleware ---------------------------------------
 app.use(express.json()); // lets the server read JSON sent in a request body (req.body)
@@ -15,11 +18,11 @@ app.use(cors()); // allows a future frontend (different origin) to call this API
 
 // in-memory data ------------------------------------
 let books = [
-  { id: 1, title: "The Pragmatic Programmer", author: "David Thomas", genre: "Tech", available: true },
-  { id: 2, title: "Educated", author: "Tara Westover", genre: "Memoir", available: true },
-  { id: 3, title: "Dune", author: "Frank Herbert", genre: "Sci-Fi", available: false },
-  { id: 4, title: "Sapiens", author: "Yuval Noah Harari", genre: "History", available: true },
-  { id: 5, title: "The Alchemist", author: "Paulo Coelho", genre: "Fiction", available: true },
+  { title: "The Pragmatic Programmer", author: "David Thomas", genre: "Tech", available: true },
+  { title: "Educated", author: "Tara Westover", genre: "Memoir", available: true },
+  { title: "Dune", author: "Frank Herbert", genre: "Sci-Fi", available: false },
+  { title: "Sapiens", author: "Yuval Noah Harari", genre: "History", available: true },
+  { title: "The Alchemist", author: "Paulo Coelho", genre: "Fiction", available: true },
 ];
 
 let nextId = 6; // use this for any new book you create
@@ -36,9 +39,10 @@ app.get("/", (request, response) => {
 
 // Part 3: GET all books
 // TODO: Workshop: swap `books` for the Book method that returns every row.
-app.get("/api/books", (request, response, next) => {
+app.get("/api/books", async (request, response, next) => {
   try {
-    response.json(books);
+    const books = await Book.findAll();
+    response.json(books)
   } catch (error) {
     next(error);
   }
@@ -47,10 +51,10 @@ app.get("/api/books", (request, response, next) => {
 // Part 4: GET one book by id
 // TODO: Workshop: swap `.find()` for the Book method that looks up by primary key.
 // It returns null when nothing matches — your 404 check below still applies.
-app.get("/api/books/:id", (request, response, next) => {
+app.get("/api/books/:id", async (request, response, next) => {
   try {
     const id = Number(request.params.id); // request.params.id is always a string — Number() makes it comparable
-    const book = books.find((b) => b.id === id);
+    const book = await Book.findByPk(id);
 
     if (!book) {
       return response.sendStatus(404);
@@ -65,21 +69,10 @@ app.get("/api/books/:id", (request, response, next) => {
 // Part 5: POST a new book
 // TODO: Workshop: swap the manual id/push for the Book method that creates a row
 // directly from req.body. nextId goes away — the database assigns the id now.
-app.post("/api/books", (request, response, next) => {
+app.post("/api/books", async (request, response, next) => {
   try {
     const { title, author, genre } = request.body;
-
-    const newBook = {
-      id: nextId,
-      title,
-      author,
-      genre,
-      available: true,
-    };
-    nextId++;
-
-    books.push(newBook);
-
+    const newBook = await Book.create({title, author, genre, available: true});
     response.status(201).json(newBook);
   } catch (error) {
     next(error);
@@ -89,17 +82,15 @@ app.post("/api/books", (request, response, next) => {
 // Part 6: PATCH an existing book — only changes the fields that were sent
 // TODO: Workshop: find the book the same Sequelize way as the GET-one route above,
 // then call the instance method that updates it in place with req.body.
-app.patch("/api/books/:id", (request, response, next) => {
+app.patch("/api/books/:id", async (request, response, next) => {
   try {
     const id = Number(request.params.id);
-    const book = books.find((b) => b.id === id);
+    const book = await Book.findByPk(id);
 
     if (!book) {
       return response.sendStatus(404);
     }
-
-    Object.assign(book, request.body);
-
+    await book.update(request.body)
     response.status(200).json(book);
   } catch (error) {
     next(error);
@@ -142,7 +133,7 @@ async function startApp() {
   // TODO: Workshop Part 3: this is where your table gets created from the Book
   // model. Call the sync method on your db connection and await it — the
   // table must exist before app.listen lets any request in.
-
+   await dbConnection.sync()
   app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 }
 

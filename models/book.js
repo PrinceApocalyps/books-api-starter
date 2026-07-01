@@ -9,6 +9,20 @@ const dbConnection = require('../db')
 //   publishedYear  INTEGER
 //   available      BOOLEAN  defaults to true
 const Book = dbConnection.define('book', {
+    title: {
+        type: DataTypes.STRING,
+        allowNull: false
+    },
+    author: {
+        type: DataTypes.STRING,
+        allowNull: false
+    },
+    genre: DataTypes.STRING,
+    publishedYear: DataTypes.INTEGER,
+    available: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: true
+    }
 
 })
 
